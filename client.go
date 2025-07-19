@@ -38,8 +38,17 @@ func (this *RateLimitedBotClient) StartWithContext(
 ) {
 	interval := newInterval(ctx)
 
+	go func() {
+		<-ctx.Done()
+		close(this.queue)
+	}()
+
 	for range interval {
-		m := <-this.queue
+		m, ok := <-this.queue
+		if !ok {
+			return
+		}
+
 		raw, err := this.base.RequestWithContext(
 			m.ctx, m.token, m.method, m.params, m.data, m.opts,
 		)
